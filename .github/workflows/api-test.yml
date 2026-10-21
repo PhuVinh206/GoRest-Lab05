@@ -15,12 +15,12 @@ jobs:
           node-version: '22'
       - name: Install Newman
         run: npm install -g newman
-      - name: Check token
+      - name: Validate GoRest token
         env:
           GOREST_TOKEN: ${{ secrets.GOREST_TOKEN }}
         run: |
           if [ -z "$GOREST_TOKEN" ]; then
-            echo 'Missing repository secret GOREST_TOKEN'
+            echo "GOREST_TOKEN secret is missing" >&2
             exit 1
           fi
       - name: Run API Tests
@@ -32,12 +32,12 @@ jobs:
             -e Environment.json \
             --env-var "token=$GOREST_TOKEN" \
             -d user.csv \
-            --reporters cli,json \
+            -r cli,json \
             --reporter-json-export reports/newman-results.json
       - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: newman-results
+          name: gorest-newman-report
           path: reports/
           if-no-files-found: ignore
