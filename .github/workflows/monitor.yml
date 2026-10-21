@@ -1,0 +1,42 @@
+name: Production Monitor Demo
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  monitor-api:
+    name: Monitor GoRest GET users
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check API response status and time
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -sS -L --max-time 15 \
+            -o /tmp/gorest-response.json \
+            -w '%{http_code} %{time_total}\n' \
+            'https://gorest.co.in/public/v2/users' > /tmp/gorest-result.txt
+
+          read -r http_code response_time < /tmp/gorest-result.txt
+          echo "HTTP status: $http_code"
+          echo "Response time: ${response_time}s"
+          echo "Expected: HTTP 200 and response time < 0.800s"
+
+          HTTP_CODE="$http_code" RESPONSE_TIME="$response_time" python3 - <<'PY'
+          import os
+          import sys
+
+          status = os.environ['HTTP_CODE']
+          elapsed = float(os.environ['RESPONSE_TIME'])
+          if status != '200':
+              print(f'FAIL: expected HTTP 200, received {status}')
+              sys.exit(1)
+          if elapsed >= 0.800:
+              print(f'FAIL: response time {elapsed * 1000:.1f} ms >= 800 ms')
+              sys.exit(1)
+          print(f'PASS: GET /users returned HTTP 200 in {elapsed * 1000:.1f} ms')
+          PY
