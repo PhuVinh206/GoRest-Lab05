@@ -1,5 +1,4 @@
 name: GoRest API Testing
-
 on:
   push:
   workflow_dispatch:
@@ -7,24 +6,38 @@ on:
 jobs:
   api-test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
       - name: Install Newman
         run: npm install -g newman
-    
+      - name: Check token
+        env:
+          GOREST_TOKEN: ${{ secrets.GOREST_TOKEN }}
+        run: |
+          if [ -z "$GOREST_TOKEN" ]; then
+            echo 'Missing repository secret GOREST_TOKEN'
+            exit 1
+          fi
       - name: Run API Tests
         env:
           GOREST_TOKEN: ${{ secrets.GOREST_TOKEN }}
         run: |
+          mkdir -p reports
           newman run Collection.json \
             -e Environment.json \
             --env-var "token=$GOREST_TOKEN" \
-            -d user.csv
+            -d user.csv \
+            --reporters cli,json \
+            --reporter-json-export reports/newman-results.json
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-results
+          path: reports/
+          if-no-files-found: ignore
