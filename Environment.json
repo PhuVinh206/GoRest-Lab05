@@ -1,6 +1,4 @@
-
 {
-  "id": "402e08ea-cf54-4359-a378-4983ed21e3ea",
   "name": "2474802010441_PhamPhuVinh_GoRest_Env",
   "values": [
     {
@@ -26,14 +24,7 @@
       "value": "",
       "type": "default",
       "enabled": true
-    },
-    {
-      "key": "duplicateEmail",
-      "value": "vinhduplicate20261021x02@example.com",
-      "type": "default",
-      "enabled": true
     }
   ],
-  "color": null,
   "_postman_variable_scope": "environment"
 }
