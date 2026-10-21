@@ -27,4 +27,4 @@ jobs:
           newman run Collection.json \
             -e Environment.json \
             --env-var "token=$GOREST_TOKEN" \
-            -d users.csv
+            -d user.csv
