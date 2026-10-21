@@ -1,10 +1,7 @@
 {
   "info": {
-    "_postman_id": "b6f8aa66-106f-498b-8b6c-bab8804000ac",
-    "name": "2474802010441_PhamPhuVinh_GoRest",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "59051936",
-    "_collection_link": "https://go.postman.co/collection/59051936-b6f8aa66-106f-498b-8b6c-bab8804000ac?source=collection_link"
+    "name": "2474802010441_PhamPhuVinh_GoRest_Fixed",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
@@ -14,30 +11,51 @@
           "name": "POST User",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.unset('userId');",
+                  "pm.environment.unset('createdEmail');",
+                  "const original = pm.iterationData.get('email') || 'vinhlab@example.com';",
+                  "const local = original.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '');",
+                  "const suffix = Date.now() + '_' + pm.info.iteration + '_' + Math.floor(Math.random() * 1000000);",
+                  "pm.variables.set('uniqueEmail', local + '_' + suffix + '@example.com');"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
-                "exec": [
-                  "pm.test(\"POST - Status 201\", function () {\r",
-                  "    pm.response.to.have.status(201);\r",
-                  "});\r",
-                  "\r",
-                  "if (pm.response.code === 201) {\r",
-                  "    const data = pm.response.json();\r",
-                  "\r",
-                  "    pm.environment.set(\"userId\", data.id);\r",
-                  "    pm.environment.set(\"createdEmail\", data.email);\r",
-                  "\r",
-                  "    console.log(\"Saved userId:\", data.id);\r",
-                  "    console.log(\"Saved createdEmail:\", data.email);\r",
-                  "}"
-                ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "exec": [
+                  "pm.test('POST - Status 201', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  pm.test('POST - Co User ID', function () { pm.expect(data.id).to.exist; });",
+                  "  pm.environment.set('userId', String(data.id));",
+                  "  pm.environment.set('createdEmail', data.email);",
+                  "  console.log('Created userId:', data.id, 'email:', data.email);",
+                  "} else {",
+                  "  console.log('POST failed:', pm.response.code, pm.response.text());",
+                  "}"
+                ]
               }
             }
           ],
           "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -48,25 +66,14 @@
                 }
               ]
             },
-            "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"{{name}}\",\r\n  \"gender\": \"{{gender}}\",\r\n  \"email\": \"{{email}}\",\r\n  \"status\": \"active\"\r\n}",
+              "raw": "{\n  \"name\": \"{{name}}\",\n  \"gender\": \"{{gender}}\",\n  \"email\": \"{{uniqueEmail}}\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
             }
           },
           "response": []
@@ -77,26 +84,26 @@
             {
               "listen": "test",
               "script": {
-                "exec": [
-                  "pm.test(\"GET - Status 200\", function () {\r",
-                  "    pm.response.to.have.status(200);\r",
-                  "});\r",
-                  "\r",
-                  "pm.test(\"Kiem tra User ID\", function () {\r",
-                  "    const data = pm.response.json();\r",
-                  "\r",
-                  "    pm.expect(String(data.id))\r",
-                  "      .to.eql(String(pm.environment.get(\"userId\")));\r",
-                  "});\r",
-                  ""
-                ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "exec": [
+                  "pm.test('GET - Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  " const data = pm.response.json();",
+                  " pm.test('Kiem tra User ID', function () { pm.expect(String(data.id)).to.eql(pm.environment.get('userId')); });",
+                  "}"
+                ]
               }
             }
           ],
           "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -105,18 +112,6 @@
                   "value": "{{token}}",
                   "type": "string"
                 }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
               ]
             }
           },
@@ -128,23 +123,30 @@
             {
               "listen": "test",
               "script": {
-                "exec": [
-                  "pm.test(\"PATCH - Status 200\", function () {\r",
-                  "    pm.response.to.have.status(200);\r",
-                  "});\r",
-                  "\r",
-                  "pm.test(\"Kiem tra inactive\", function () {\r",
-                  "    const data = pm.response.json();\r",
-                  "    pm.expect(data.status).to.eql(\"inactive\");\r",
-                  "});"
-                ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "exec": [
+                  "pm.test('PATCH - Status 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) {",
+                  " const data = pm.response.json();",
+                  " pm.test('Kiem tra inactive', function () { pm.expect(data.status).to.eql('inactive'); });",
+                  "}"
+                ]
               }
             }
           ],
           "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -155,106 +157,17 @@
                 }
               ]
             },
-            "method": "PATCH",
-            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"status\": \"inactive\"\r\n}\r\n",
+              "raw": "{\n  \"status\": \"inactive\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
             }
           },
           "response": []
-        },
-        {
-          "name": "DELETE User",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test(\"DELETE - Status 204\", function () {\r",
-                  "    pm.response.to.have.status(204);\r",
-                  "});"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "auth": {
-        "type": "bearer",
-        "bearer": [
-          {
-            "key": "token",
-            "value": "{{token}}",
-            "type": "string"
-          }
-        ]
-      },
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {},
-            "exec": [
-              ""
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {},
-            "exec": [
-              ""
-            ]
-          }
         }
       ]
     },
@@ -267,40 +180,37 @@
             {
               "listen": "test",
               "script": {
-                "exec": [
-                  "pm.test(\"POST No Token - Status 401\", function () {\r",
-                  "    pm.response.to.have.status(401);\r",
-                  "});"
-                ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "exec": [
+                  "pm.test('POST No Token - Status 401', function () { pm.response.to.have.status(401); });"
+                ]
               }
             }
           ],
           "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users",
             "auth": {
               "type": "noauth"
             },
-            "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Test No Token\",\r\n    \"gender\": \"male\",\r\n    \"email\": \"notoken2474802010441@example.com\",\r\n    \"status\": \"active\"\r\n}\r\n",
+              "raw": "{\n  \"name\": \"Test No Token\",\n  \"gender\": \"male\",\n  \"email\": \"notoken@example.com\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
-              ]
             }
           },
           "response": []
@@ -309,28 +219,45 @@
           "name": "POST Duplicate Email",
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const email = pm.environment.get('createdEmail');",
+                  "if (!email) { throw new Error('Chua co createdEmail tu POST User'); }",
+                  "pm.variables.set('duplicateRequestEmail', email);"
+                ]
+              }
+            },
+            {
               "listen": "test",
               "script": {
-                "exec": [
-                  "pm.test(\"POST Duplicate - Status 422\", function () {\r",
-                  "    pm.response.to.have.status(422);\r",
-                  "});\r",
-                  "\r",
-                  "const email = pm.variables.get(\"createdEmail\");\r",
-                  "\r",
-                  "console.log(\"Email kiem tra trung:\", email);\r",
-                  "\r",
-                  "if (!email) {\r",
-                  "    throw new Error(\"Chua co createdEmail tu POST User\");\r",
-                  "}"
-                ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "exec": [
+                  "pm.test('POST Duplicate - Status 422', function () { pm.response.to.have.status(422); });",
+                  "if (pm.response.code === 422) {",
+                  " const data = pm.response.json();",
+                  " pm.test('Duplicate - Email already taken', function () {",
+                  "  pm.expect(JSON.stringify(data).toLowerCase()).to.include('taken');",
+                  " });",
+                  "}"
+                ]
               }
             }
           ],
           "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -341,24 +268,53 @@
                 }
               ]
             },
-            "method": "POST",
-            "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"Duplicate User\",\r\n  \"gender\": \"male\",\r\n  \"email\": \"{{duplicateEmail}}\",\r\n  \"status\": \"active\"\r\n}",
+              "raw": "{\n  \"name\": \"Duplicate User\",\n  \"gender\": \"male\",\n  \"email\": \"{{duplicateRequestEmail}}\",\n  \"status\": \"active\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Cleanup_and_Verification",
+      "item": [
+        {
+          "name": "DELETE User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('DELETE - Status 204', function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
               ]
             }
           },
@@ -370,18 +326,22 @@
             {
               "listen": "test",
               "script": {
-                "exec": [
-                  "pm.test(\"GET Deleted - Status 404\", function () {\r",
-                  "    pm.response.to.have.status(404);\r",
-                  "});"
-                ],
                 "type": "text/javascript",
-                "packages": {},
-                "requests": {}
+                "exec": [
+                  "pm.test('GET Deleted - Status 404', function () { pm.response.to.have.status(404); });"
+                ]
               }
             }
           ],
           "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/users/{{userId}}",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -390,18 +350,6 @@
                   "value": "{{token}}",
                   "type": "string"
                 }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "users",
-                "{{userId}}"
               ]
             }
           },
